@@ -29,11 +29,19 @@ export function useCardOverlays(
         const { width, height } = container.getBoundingClientRect();
         const next = renderer
           .getVisibleCards()
-          .map((card) => {
+          .flatMap((card): ProjectedCard[] => {
             const screen = worldToScreen(viewProjection, card.worldX, card.worldZ, width, height);
-            return { ...card, screenX: screen.x, screenY: screen.y, visible: screen.visible };
-          })
-          .filter((card) => card.visible && card.screenX > -200 && card.screenX < width + 200 && card.screenY > -200 && card.screenY < height + 200);
+            if (
+              !screen.visible ||
+              screen.x <= -200 ||
+              screen.x >= width + 200 ||
+              screen.y <= -200 ||
+              screen.y >= height + 200
+            ) {
+              return [];
+            }
+            return [{ ...card, screenX: screen.x, screenY: screen.y }];
+          });
         setProjected(next);
       }
       frameRef.current = requestAnimationFrame(tick);
