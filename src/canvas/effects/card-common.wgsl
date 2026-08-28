@@ -43,11 +43,28 @@ export fn cardVertex(
 }
 
 /**
- * Stylized glass look applied on top of a card's own procedural color: a rounded-rect
- * clip (discards outside the card), an edge vignette, and a diagonal specular sheen that
- * drifts over time. Does not sample or bend anything behind the card (no real refraction).
+ * Convex-lens sampling distortion: displaces `uv` toward/away from the card center based on
+ * radial distance, so the procedural content sampled at the returned uv reads as if refracted
+ * through curved glass. `strength` 0 = no distortion (flat glass), higher = stronger bulge.
+ * Call this BEFORE sampling effectColor(); it operates on the sampling coordinate, not the
+ * output color, so it works on any procedural content with no extra texture/render pass.
  */
-export fn applyGlass(baseColor: vec3f, uv: vec2f, time: f32) -> vec4f {
+export fn applyBulge(uv: vec2f, strength: f32) -> vec2f {
+  let centered = uv * 2.0 - 1.0;
+  let dist = length(centered);
+  let bulge = 1.0 - strength * (1.0 - dist * dist);
+  let displaced = centered * bulge;
+  return displaced * 0.5 + 0.5;
+}
+
+/**
+ * Stylized glass look applied on top of a card's own (already-sampled) procedural color: a
+ * rounded-rect clip (discards outside the card), an edge vignette, and a diagonal specular
+ * sheen that drifts over time. `uv` here must be the card's own untouched UV (not the
+ * bulge-displaced sampling coordinate) since the clip/vignette describe the card's physical
+ * shape, not its optical content. Does not sample or bend anything behind the card.
+ */
+export fn applyGlass(baseColor: vec3f, uv: vec2f, time: f32, sheenIntensity: f32) -> vec4f {
   let centered = uv * 2.0 - 1.0; // -1..1
   let cornerRadius = 0.12;
   let halfExtent = vec2f(1.0, 1.0) - vec2f(cornerRadius);
@@ -61,7 +78,7 @@ export fn applyGlass(baseColor: vec3f, uv: vec2f, time: f32) -> vec4f {
 
   let sheenAxis = (centered.x + centered.y) * 0.5;
   let sheenPos = fract(time * 0.05) * 3.0 - 1.0;
-  let sheen = smoothstep(0.04, 0.0, abs(sheenAxis - sheenPos)) * 0.18;
+  let sheen = smoothstep(0.05, 0.0, abs(sheenAxis - sheenPos)) * sheenIntensity;
 
   let edgeFade = smoothstep(0.0, -0.03, outsideDist);
   let color = baseColor * vignette + vec3f(sheen);

@@ -1,5 +1,5 @@
 // src/canvas/effects/wave-interference.wgsl
-import { CardVertexOut, cardVertex, applyGlass } from "./card-common.wgsl";
+import { CardVertexOut, cardVertex, applyBulge, applyGlass } from "./card-common.wgsl";
 
 struct Camera { viewProjection: mat4x4f }
 struct Params {
@@ -7,7 +7,7 @@ struct Params {
   unitOffsetX: f32, unitOffsetZ: f32,
   periodWidth: f32, periodHeight: f32,
   instanceCols: f32, instanceRows: f32,
-  aberration: f32,
+  aberration: f32, bulgeStrength: f32, sheenIntensity: f32,
 }
 @group(0) @binding(0) var<uniform> camera: Camera;
 @group(0) @binding(1) var<uniform> params: Params;
@@ -43,9 +43,10 @@ fn effectColor(uv: vec2f, time: f32) -> vec3f {
 }
 
 @fragment fn fs_main(@location(0) uv: vec2f) -> @location(0) vec4f {
-  let aberr = params.aberration * length(uv * 2.0 - 1.0);
-  let r = effectColor(uv + vec2f(aberr, 0.0), params.time).r;
-  let g = effectColor(uv, params.time).g;
-  let b = effectColor(uv - vec2f(aberr, 0.0), params.time).b;
-  return applyGlass(vec3f(r, g, b), uv, params.time);
+  let warpedUv = applyBulge(uv, params.bulgeStrength);
+  let aberr = params.aberration * length(warpedUv * 2.0 - 1.0);
+  let r = effectColor(warpedUv + vec2f(aberr, 0.0), params.time).r;
+  let g = effectColor(warpedUv, params.time).g;
+  let b = effectColor(warpedUv - vec2f(aberr, 0.0), params.time).b;
+  return applyGlass(vec3f(r, g, b), uv, params.time, params.sheenIntensity);
 }

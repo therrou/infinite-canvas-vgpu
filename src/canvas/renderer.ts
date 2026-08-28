@@ -1,8 +1,9 @@
 // src/canvas/renderer.ts
 import { clock, draw, frame, frameLoop, geometry, init, surface, type Draw, type Gpu, type Surface } from "vgpu";
 import { plane } from "vgpu/scene";
+import GUI from "lil-gui";
 
-import { createCameraRig, type CameraRig } from "./cameraRig";
+import { createCameraRig, DEFAULT_ROTATION_DEG, DEFAULT_TILT_DEG, type CameraRig } from "./cameraRig";
 import { CARD_EFFECTS } from "./effects/registry";
 import { createInputController, type InputController } from "./inputController";
 import {
@@ -54,6 +55,16 @@ export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): Infinit
   let lastPan = { x: 0, z: 0 };
   let cleanupResize: (() => void) | undefined;
 
+  const tuning = {
+    tiltDeg: DEFAULT_TILT_DEG,
+    rotationDeg: DEFAULT_ROTATION_DEG,
+    spacingScale: 1,
+    bulgeStrength: 0.15,
+    sheenIntensity: 0.22,
+    aberration: 0.012,
+  };
+  let gui: GUI | undefined;
+
   const initialize = async () => {
     const nextGpu = await init();
     gpu = nextGpu;
@@ -66,6 +77,18 @@ export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): Infinit
     cameraRig = createCameraRig(output.size[0] / output.size[1]);
     inputController = createInputController();
     detachInput = inputController.attach(canvas);
+
+    const guiContainer = canvas.parentElement ?? undefined;
+    if (guiContainer) {
+      gui = new GUI({ title: "Scene Tuning", container: guiContainer, width: 240 });
+      Object.assign(gui.domElement.style, { position: "absolute", top: "16px", right: "16px", zIndex: "10" });
+      gui.add(tuning, "tiltDeg", 0, 60, 1).name("Tilt");
+      gui.add(tuning, "rotationDeg", -45, 45, 1).name("Rotation");
+      gui.add(tuning, "spacingScale", 0.5, 2.5, 0.05).name("Spacing");
+      gui.add(tuning, "bulgeStrength", 0, 0.4, 0.01).name("Glass Bulge");
+      gui.add(tuning, "sheenIntensity", 0, 0.6, 0.01).name("Glass Sheen");
+      gui.add(tuning, "aberration", 0, 0.04, 0.001).name("Aberration");
+    }
 
     const cardGeometry = geometry(gpu, plane({ width: CARD_WIDTH, height: CARD_HEIGHT }));
 
@@ -91,11 +114,14 @@ export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): Infinit
       lastFrameTime = now;
 
       const input = inputController!.tick(dt);
+      cameraRig!.setOrientation(tuning.tiltDeg, tuning.rotationDeg);
       cameraRig!.update(input.pointerNdcX, input.pointerNdcY, input.distance, dt);
       lastPan = { x: input.panX, z: input.panZ };
 
-      const localOffsetX = wrapOffset(input.panX, PERIOD_WIDTH);
-      const localOffsetZ = wrapOffset(input.panZ, PERIOD_HEIGHT);
+      const scaledPeriodWidth = PERIOD_WIDTH * tuning.spacingScale;
+      const scaledPeriodHeight = PERIOD_HEIGHT * tuning.spacingScale;
+      const localOffsetX = wrapOffset(input.panX, scaledPeriodWidth);
+      const localOffsetZ = wrapOffset(input.panZ, scaledPeriodHeight);
       const viewProjection = cameraRig!.camera.viewProjection;
 
       for (const [index, effect] of CARD_EFFECTS.entries()) {
@@ -106,13 +132,15 @@ export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): Infinit
             time: time.time,
             localOffsetX,
             localOffsetZ,
-            unitOffsetX: unit.x,
-            unitOffsetZ: unit.z,
-            periodWidth: PERIOD_WIDTH,
-            periodHeight: PERIOD_HEIGHT,
+            unitOffsetX: unit.x * tuning.spacingScale,
+            unitOffsetZ: unit.z * tuning.spacingScale,
+            periodWidth: scaledPeriodWidth,
+            periodHeight: scaledPeriodHeight,
             instanceCols: INSTANCE_COLS,
             instanceRows: INSTANCE_ROWS,
-            aberration: 0.012,
+            aberration: tuning.aberration,
+            bulgeStrength: tuning.bulgeStrength,
+            sheenIntensity: tuning.sheenIntensity,
           },
         });
       }
@@ -142,8 +170,9 @@ export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): Infinit
       const cards: VisibleCard[] = [];
       for (let effectIndex = 0; effectIndex < CARD_EFFECTS.length; effectIndex++) {
         for (let instanceIndex = 0; instanceIndex < INSTANCES_PER_EFFECT; instanceIndex++) {
-          const { x, z } = cardWorldPosition(effectIndex, instanceIndex, lastPan.x, lastPan.z);
-          if (Math.abs(x) > OVERLAY_WORLD_MARGIN || Math.abs(z) > OVERLAY_WORLD_MARGIN) continue;
+          const { x, z } = cardWorldPosition(effectIndex, instanceIndex, lastPan.x, lastPan.z, tuning.spacingScale);
+          const scaledMargin = OVERLAY_WORLD_MARGIN * tuning.spacingScale;
+          if (Math.abs(x) > scaledMargin || Math.abs(z) > scaledMargin) continue;
           cards.push({ key: `${effectIndex}:${instanceIndex}`, effectIndex, worldX: x, worldZ: z });
         }
       }
@@ -155,6 +184,7 @@ export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): Infinit
       loopHandle?.stop();
       detachInput?.();
       cleanupResize?.();
+      gui?.destroy();
       gpu?.dispose();
     },
   };

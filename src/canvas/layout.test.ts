@@ -82,4 +82,15 @@ describe("cardWorldPosition", () => {
     expect(Number.isFinite(x)).toBe(true);
     expect(Number.isFinite(z)).toBe(true);
   });
+
+  it("scales the whole grid uniformly when a scale factor is given, and defaults to 1", () => {
+    const unscaled = cardWorldPosition(1, 30, 2, -1);
+    const explicit1 = cardWorldPosition(1, 30, 2, -1, 1);
+    expect(explicit1).toEqual(unscaled);
+
+    const doubled = cardWorldPosition(1, 30, 4, -2, 2);
+    // Doubling pan AND scale together should double every world coordinate.
+    expect(doubled.x).toBeCloseTo(unscaled.x * 2, 5);
+    expect(doubled.z).toBeCloseTo(unscaled.z * 2, 5);
+  });
 });

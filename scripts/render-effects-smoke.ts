@@ -47,6 +47,8 @@ async function main() {
           instanceCols: 1,
           instanceRows: 1,
           aberration: 0.01,
+          bulgeStrength: 0.15,
+          sheenIntensity: 0.22,
         },
       });
 

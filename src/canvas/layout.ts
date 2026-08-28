@@ -57,16 +57,19 @@ export function cardWorldPosition(
   effectIndex: number,
   instanceIndex: number,
   panX: number,
-  panZ: number
+  panZ: number,
+  scale: number = 1
 ): { x: number; z: number } {
   const unit = effectUnitOffset(effectIndex);
   const { col, row } = instanceLocalIndices(instanceIndex);
   const i = col - (INSTANCE_COLS - 1) / 2;
   const j = row - (INSTANCE_ROWS - 1) / 2;
-  const localOffsetX = wrapOffset(panX, PERIOD_WIDTH);
-  const localOffsetZ = wrapOffset(panZ, PERIOD_HEIGHT);
+  const scaledPeriodWidth = PERIOD_WIDTH * scale;
+  const scaledPeriodHeight = PERIOD_HEIGHT * scale;
+  const localOffsetX = wrapOffset(panX, scaledPeriodWidth);
+  const localOffsetZ = wrapOffset(panZ, scaledPeriodHeight);
   return {
-    x: unit.x + i * PERIOD_WIDTH - localOffsetX,
-    z: unit.z + j * PERIOD_HEIGHT - localOffsetZ,
+    x: unit.x * scale + i * scaledPeriodWidth - localOffsetX,
+    z: unit.z * scale + j * scaledPeriodHeight - localOffsetZ,
   };
 }
