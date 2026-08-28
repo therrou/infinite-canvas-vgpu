@@ -32,10 +32,15 @@ export interface InfiniteCanvasRenderer {
   dispose(): void;
 }
 
-/** Cards whose screen-space position is more than this many world units outside the
- * nominal camera range are skipped when building the HTML overlay list, so labels never
- * appear for the handful of instance-window cards that sit far off-screen. */
-const OVERLAY_WORLD_MARGIN = 1.5 * Math.max(PERIOD_WIDTH, PERIOD_HEIGHT);
+/** Generously covers the full reachable extent of the fixed instance window in both axes
+ * — (INSTANCE_COLS-1)/2 and (INSTANCE_ROWS-1)/2 periods out from each effect's unit offset,
+ * plus one extra period of margin — so the overlay's coarse pre-filter never excludes a card
+ * that the GPU actually renders on screen, at any zoom level. The precise, per-frame visibility
+ * check (actual projected screen position) still happens downstream in useCardOverlays.ts. */
+const OVERLAY_WORLD_MARGIN = Math.max(
+  ((INSTANCE_COLS - 1) / 2 + 1) * PERIOD_WIDTH,
+  ((INSTANCE_ROWS - 1) / 2 + 1) * PERIOD_HEIGHT
+);
 
 export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): InfiniteCanvasRenderer {
   let disposed = false;

@@ -2,9 +2,9 @@ import { orthographicCamera, type OrthographicCamera } from "vgpu/scene";
 
 import { clamp, lerp } from "./math";
 
-export const MIN_ZOOM = 4;
-export const MAX_ZOOM = 14;
-export const DEFAULT_ZOOM = 7;
+export const MIN_ZOOM = 2.2;
+export const MAX_ZOOM = 8;
+export const DEFAULT_ZOOM = 3.2;
 
 const NEAR = 0.1;
 const FAR = 60;
