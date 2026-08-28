@@ -1,0 +1,40 @@
+/* src/overlay/CardOverlay.css */
+.card-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 260px;
+  height: 160px;
+  margin-left: -130px;
+  margin-top: -80px;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px 16px;
+  color: #fff;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+}
+
+.card-overlay__kicker {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  opacity: 0.8;
+}
+
+.card-overlay__id {
+  color: #7dd3fc;
+}
+
+.card-overlay__title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.card-overlay__tagline {
+  font-size: 12px;
+  opacity: 0.85;
+}
