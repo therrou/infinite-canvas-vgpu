@@ -61,7 +61,7 @@ export fn applyGlass(baseColor: vec3f, uv: vec2f, time: f32) -> vec4f {
 
   let sheenAxis = (centered.x + centered.y) * 0.5;
   let sheenPos = fract(time * 0.05) * 3.0 - 1.0;
-  let sheen = smoothstep(0.08, 0.0, abs(sheenAxis - sheenPos)) * 0.35;
+  let sheen = smoothstep(0.04, 0.0, abs(sheenAxis - sheenPos)) * 0.18;
 
   let edgeFade = smoothstep(0.0, -0.03, outsideDist);
   let color = baseColor * vignette + vec3f(sheen);

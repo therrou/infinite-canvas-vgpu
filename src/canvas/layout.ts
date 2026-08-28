@@ -3,8 +3,8 @@ export const CARD_WIDTH = 2.1;
 export const CARD_HEIGHT = 1.3;
 
 /** World-space spacing between card centers (leaves a gutter around CARD_WIDTH/HEIGHT). */
-export const CELL_WIDTH = 2.6;
-export const CELL_HEIGHT = 1.7;
+export const CELL_WIDTH = 2.3;
+export const CELL_HEIGHT = 1.45;
 
 /** The unique-card repeat unit: 2 columns x 3 rows = 6 distinct effects. */
 export const REPEAT_COLS = 2;
@@ -15,7 +15,7 @@ export const PERIOD_HEIGHT = CELL_HEIGHT * REPEAT_ROWS;
 
 /**
  * Fixed instance window per effect. Large enough to cover the world at the
- * maximum camera zoom-out distance (see cameraRig.ts MAX_DISTANCE) with margin,
+ * maximum camera zoom-out distance (see cameraRig.ts MAX_ZOOM) with margin,
  * so panning/zooming never needs to grow instance counts.
  */
 export const INSTANCE_COLS = 9; // covers +/- 4 periods

@@ -1,4 +1,4 @@
-import { DEFAULT_DISTANCE, MAX_DISTANCE, MIN_DISTANCE } from "./cameraRig";
+import { DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from "./cameraRig";
 import { applyInertia, clamp, type InertiaState } from "./math";
 
 export interface InputSnapshot {
@@ -25,14 +25,14 @@ export function createInputController(): InputController {
   let lastPointerX = 0;
   let lastPointerY = 0;
   let lastMoveTime = performance.now();
-  let distance = DEFAULT_DISTANCE;
+  let distance = DEFAULT_ZOOM;
   let pointerNdcX = 0;
   let pointerNdcY = 0;
 
   function worldPerPixel(element: HTMLElement): number {
-    // Approximates perspective-correct drag: closer camera -> less world moves per pixel.
-    const fovRadians = (50 * Math.PI) / 180;
-    return (2 * distance * Math.tan(fovRadians / 2)) / element.clientHeight;
+    // Orthographic camera: `distance` is the view box's half-height in world units,
+    // so world-units-per-pixel is a direct linear ratio — no FOV/perspective term needed.
+    return (2 * distance) / element.clientHeight;
   }
 
   function updatePointerNdc(element: HTMLElement, clientX: number, clientY: number) {
@@ -82,7 +82,7 @@ export function createInputController(): InputController {
 
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
-      distance = clamp(distance + event.deltaY * ZOOM_SPEED, MIN_DISTANCE, MAX_DISTANCE);
+      distance = clamp(distance + event.deltaY * ZOOM_SPEED, MIN_ZOOM, MAX_ZOOM);
     };
 
     element.addEventListener("pointerdown", onPointerDown);

@@ -1,54 +1,61 @@
-import { perspectiveCamera, type PerspectiveCamera } from "vgpu/scene";
+import { orthographicCamera, type OrthographicCamera } from "vgpu/scene";
 
 import { clamp, lerp } from "./math";
 
-export const MIN_DISTANCE = 5;
-export const MAX_DISTANCE = 16;
-export const DEFAULT_DISTANCE = 9;
+export const MIN_ZOOM = 4;
+export const MAX_ZOOM = 14;
+export const DEFAULT_ZOOM = 7;
 
-const FOV_DEGREES = 50;
 const NEAR = 0.1;
 const FAR = 60;
-/** Downward look angle: position.y / position.z ratio, ~32 degrees off the horizon. */
-const HEIGHT_RATIO = 0.62;
+/** Fixed camera position gives a shallow ~20 degree tilt angle — orthographic projection
+ * means position magnitude doesn't affect apparent scale, only viewing direction/rotation. */
+const CAMERA_HEIGHT = 3.4;
+const CAMERA_DEPTH = 9.4;
 /** How far (world units) the look-at target shifts at full pointer deflection. */
-const TILT_RANGE = 3.0;
+const TILT_RANGE = 2.2;
 /** Per-second smoothing factor for tilt/zoom easing (higher = snappier). */
 const SMOOTHING = 6;
 
 export interface CameraRig {
-  readonly camera: PerspectiveCamera;
+  readonly camera: OrthographicCamera;
   setAspect(aspect: number): void;
-  update(pointerNdcX: number, pointerNdcY: number, targetDistance: number, dt: number): void;
+  update(pointerNdcX: number, pointerNdcY: number, targetZoom: number, dt: number): void;
 }
 
 export function createCameraRig(aspect: number): CameraRig {
-  const camera = perspectiveCamera({
-    fov: FOV_DEGREES,
-    aspect,
-    near: NEAR,
-    far: FAR,
-    position: [0, DEFAULT_DISTANCE * HEIGHT_RATIO, DEFAULT_DISTANCE],
-    target: [0, 0, 0],
-  });
-
+  let currentAspect = aspect;
+  let smoothedZoom = DEFAULT_ZOOM;
   let smoothedTiltX = 0;
   let smoothedTiltZ = 0;
-  let smoothedDistance = DEFAULT_DISTANCE;
+
+  const halfWidth = () => smoothedZoom * currentAspect;
+
+  const camera = orthographicCamera({
+    left: -halfWidth(),
+    right: halfWidth(),
+    bottom: -smoothedZoom,
+    top: smoothedZoom,
+    near: NEAR,
+    far: FAR,
+    position: [0, CAMERA_HEIGHT, CAMERA_DEPTH],
+    target: [0, 0, 0],
+  });
 
   return {
     camera,
     setAspect(nextAspect: number) {
-      camera.set({ aspect: nextAspect });
+      currentAspect = nextAspect;
+      camera.set({ left: -halfWidth(), right: halfWidth(), bottom: -smoothedZoom, top: smoothedZoom });
     },
-    update(pointerNdcX, pointerNdcY, targetDistance, dt) {
+    update(pointerNdcX, pointerNdcY, targetZoom, dt) {
       const t = 1 - Math.exp(-SMOOTHING * dt);
-      const clampedDistance = clamp(targetDistance, MIN_DISTANCE, MAX_DISTANCE);
-      smoothedDistance = lerp(smoothedDistance, clampedDistance, t);
+      const clampedZoom = clamp(targetZoom, MIN_ZOOM, MAX_ZOOM);
+      smoothedZoom = lerp(smoothedZoom, clampedZoom, t);
       smoothedTiltX = lerp(smoothedTiltX, pointerNdcX * TILT_RANGE, t);
       smoothedTiltZ = lerp(smoothedTiltZ, pointerNdcY * TILT_RANGE, t);
 
-      camera.set({ position: [0, smoothedDistance * HEIGHT_RATIO, smoothedDistance] });
+      camera.set({ left: -halfWidth(), right: halfWidth(), bottom: -smoothedZoom, top: smoothedZoom });
       camera.lookAt([smoothedTiltX, 0, smoothedTiltZ]);
     },
   };
