@@ -10,18 +10,10 @@ import {
   PERIOD_WIDTH,
   PERIOD_HEIGHT,
 } from "../src/canvas/layout";
+import { CARD_EFFECT_METADATA } from "../src/canvas/effects/metadata";
 
 const WIDTH = 128;
 const HEIGHT = 128;
-
-const EFFECT_FILES = [
-  { id: "VGPU-01", title: "Flow Field", file: "flow-field.wgsl" },
-  { id: "VGPU-02", title: "Domain Warp", file: "domain-warp.wgsl" },
-  { id: "VGPU-03", title: "Raymarched Blob", file: "raymarch-blob.wgsl" },
-  { id: "VGPU-04", title: "Wave Interference", file: "wave-interference.wgsl" },
-  { id: "VGPU-05", title: "Voronoi Cells", file: "voronoi-cells.wgsl" },
-  { id: "VGPU-06", title: "Particle Field", file: "particle-field.wgsl" },
-];
 
 async function main() {
   const gpu = await init();
@@ -36,28 +28,28 @@ async function main() {
 
   let failures = 0;
 
-  for (const effect of EFFECT_FILES) {
-    const entry = fileURLToPath(new URL(`../src/canvas/effects/${effect.file}`, import.meta.url));
-    const resolved = await resolveShader({ entry });
-
-    const cardDraw = draw(gpu, { shader: resolved.wgsl, geometry: cardGeometry, instances: 1 });
-    cardDraw.set({
-      camera: { viewProjection: camera.viewProjection },
-      params: {
-        time: 1.7,
-        localOffsetX: 0,
-        localOffsetZ: 0,
-        unitOffsetX: 0,
-        unitOffsetZ: 0,
-        periodWidth: PERIOD_WIDTH,
-        periodHeight: PERIOD_HEIGHT,
-        instanceCols: 1,
-        instanceRows: 1,
-        aberration: 0.01,
-      },
-    });
-
+  for (const effect of CARD_EFFECT_METADATA) {
     try {
+      const entry = fileURLToPath(new URL(`../src/canvas/effects/${effect.file}`, import.meta.url));
+      const resolved = await resolveShader({ entry });
+
+      const cardDraw = draw(gpu, { shader: resolved.wgsl, geometry: cardGeometry, instances: 1 });
+      cardDraw.set({
+        camera: { viewProjection: camera.viewProjection },
+        params: {
+          time: 1.7,
+          localOffsetX: 0,
+          localOffsetZ: 0,
+          unitOffsetX: 0,
+          unitOffsetZ: 0,
+          periodWidth: PERIOD_WIDTH,
+          periodHeight: PERIOD_HEIGHT,
+          instanceCols: 1,
+          instanceRows: 1,
+          aberration: 0.01,
+        },
+      });
+
       frame(gpu, (currentFrame) => {
         currentFrame.pass({ target: output, clear: [0, 0, 0, 1] }, (pass) => {
           pass.draw(cardDraw);
@@ -72,7 +64,7 @@ async function main() {
         console.log(`[OK]   ${effect.id} ${effect.title}: variance=${variance.toFixed(1)}`);
       }
     } catch (error) {
-      console.error(`[FAIL] ${effect.id} ${effect.title}: threw during render`, error);
+      console.error(`[FAIL] ${effect.id} ${effect.title}: threw during setup/render`, error);
       failures++;
     }
   }
@@ -80,10 +72,10 @@ async function main() {
   gpu.dispose();
 
   if (failures > 0) {
-    console.error(`\n${failures}/${EFFECT_FILES.length} effects failed.`);
+    console.error(`\n${failures}/${CARD_EFFECT_METADATA.length} effects failed.`);
     process.exit(1);
   }
-  console.log(`\nAll ${EFFECT_FILES.length} effects rendered non-trivial frames.`);
+  console.log(`\nAll ${CARD_EFFECT_METADATA.length} effects rendered non-trivial frames.`);
 }
 
 function computeVariance(pixels: Uint8Array | Uint8ClampedArray): number {
