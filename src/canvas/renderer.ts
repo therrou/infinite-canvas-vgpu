@@ -189,12 +189,24 @@ export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): Infinit
     // each frame and fed into the same card-lens shader as the "artwork" input the procedural
     // effects use — so real footage gets the exact same refraction/dispersion/reflection
     // treatment instead of sitting on top as a separate flat DOM overlay.
+    //
+    // Videos are NOT created/loaded up front: with 10+ clips at several MB each, downloading
+    // and decoding all of them at init would dominate load time for effects nobody has
+    // scrolled to yet. Instead `ensureVideoForEffect` lazily creates+plays a video the first
+    // time its effect becomes visible (see the frameLoop below), and exited effects are only
+    // paused (buffered data kept) so re-entering the viewport resumes instantly.
     const cardAspect = CARD_WIDTH / CARD_HEIGHT;
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     videoCovers = CARD_EFFECTS.map(() => ({ scaleX: 1, scaleY: 1, offsetX: 0, offsetY: 0 }));
     videoTextures = CARD_EFFECTS.map(() => undefined);
-    videoElements = CARD_EFFECTS.map((effect, index) => {
-      if (!effect.videoSrc) return undefined;
+    videoElements = CARD_EFFECTS.map(() => undefined);
+
+    const ensureVideoForEffect = (index: number) => {
+      if (videoElements[index]) return;
+      if (prefersReducedMotion) return;
+      const effect = CARD_EFFECTS[index];
+      if (!effect.videoSrc) return;
+
       const video = document.createElement("video");
       video.src = effect.videoSrc;
       video.muted = true;
@@ -213,11 +225,9 @@ export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): Infinit
         videoCovers[index] = coverUvTransform(cardAspect, video.videoWidth / video.videoHeight);
       });
       document.body.appendChild(video);
-      if (!prefersReducedMotion) {
-        video.play().catch(() => {});
-      }
-      return video;
-    });
+      video.play().catch(() => {});
+      videoElements[index] = video;
+    };
 
     // Rendered once: a static "studio softbox" matcap sampled by the glass
     // shader's bevel normal to stand in for a real environment reflection.
@@ -255,6 +265,7 @@ export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): Infinit
 
     const time = clock(gpu);
     let lastFrameTime = performance.now();
+    let previousVisibleEffectIndexes = new Set<number>();
 
     loopHandle = frameLoop(gpu, (currentFrame) => {
       const now = performance.now();
@@ -274,6 +285,28 @@ export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): Infinit
       const localOffsetX = wrapOffset(input.panX, scaledPeriodWidth);
       const localOffsetZ = wrapOffset(input.panZ, scaledPeriodHeight);
       const viewProjection = cameraRig!.camera.viewProjection;
+
+      const visibleEffectIndexes = new Set(
+        cardCandidatesInView(
+          input.panX,
+          input.panZ,
+          tuning.spacingScale,
+          targetZoom * lastAspect,
+          targetZoom
+        ).map((card) => card.effectIndex)
+      );
+      for (const index of visibleEffectIndexes) {
+        ensureVideoForEffect(index);
+      }
+      for (const index of previousVisibleEffectIndexes) {
+        if (visibleEffectIndexes.has(index)) continue;
+        videoElements[index]?.pause();
+      }
+      for (const index of visibleEffectIndexes) {
+        const video = videoElements[index];
+        if (video?.paused) video.play().catch(() => {});
+      }
+      previousVisibleEffectIndexes = visibleEffectIndexes;
 
       for (const [index] of CARD_EFFECTS.entries()) {
         const video = videoElements[index];
