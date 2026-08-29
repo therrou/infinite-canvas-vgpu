@@ -2,12 +2,12 @@ import { orthographicCamera, type OrthographicCamera } from "vgpu/scene";
 
 import { clamp, lerp } from "./math";
 
-export const MIN_ZOOM = 2.2;
-export const MAX_ZOOM = 8;
-export const DEFAULT_ZOOM = 3.2;
+export const MIN_ZOOM = 0.8;
+export const MAX_ZOOM = 7.5;
+export const DEFAULT_ZOOM = 1.65;
 
-export const DEFAULT_TILT_DEG = 20;
-export const DEFAULT_ROTATION_DEG = 8;
+export const DEFAULT_TILT_DEG = 82;
+export const DEFAULT_ROTATION_DEG = 0;
 
 const NEAR = 0.1;
 const FAR = 60;
@@ -15,7 +15,7 @@ const FAR = 60;
  * (orthographic projection has no perspective-driven scale-with-distance). */
 const CAMERA_RADIUS = 10;
 /** How far (world units) the look-at target shifts at full pointer deflection. */
-const TILT_RANGE = 2.2;
+const TILT_RANGE = 0.1;
 /** Per-second smoothing factor for zoom/pointer-tilt easing (higher = snappier). */
 const SMOOTHING = 6;
 
@@ -27,9 +27,30 @@ export interface CameraRig {
   update(pointerNdcX: number, pointerNdcY: number, targetZoom: number, dt: number): void;
 }
 
-export function createCameraRig(aspect: number): CameraRig {
+export function cameraPose(
+  tiltDeg: number,
+  rotationDeg: number
+): { position: [number, number, number]; up: [number, number, number] } {
+  const tilt = (tiltDeg * Math.PI) / 180;
+  const rotation = (rotationDeg * Math.PI) / 180;
+  const sinTilt = Math.sin(tilt);
+  const cosTilt = Math.cos(tilt);
+  return {
+    position: [0, sinTilt * CAMERA_RADIUS, cosTilt * CAMERA_RADIUS],
+    up: [
+      Math.sin(rotation),
+      Math.cos(rotation) * cosTilt,
+      -Math.cos(rotation) * sinTilt,
+    ],
+  };
+}
+
+export function createCameraRig(
+  aspect: number,
+  initialZoom: number = DEFAULT_ZOOM
+): CameraRig {
   let currentAspect = aspect;
-  let smoothedZoom = DEFAULT_ZOOM;
+  let smoothedZoom = clamp(initialZoom, MIN_ZOOM, MAX_ZOOM);
   let smoothedTiltX = 0;
   let smoothedTiltZ = 0;
   let tiltDeg = DEFAULT_TILT_DEG;
@@ -49,14 +70,7 @@ export function createCameraRig(aspect: number): CameraRig {
   });
 
   const applyOrientation = (targetX: number, targetZ: number) => {
-    const tiltRad = (tiltDeg * Math.PI) / 180;
-    const rotationRad = (rotationDeg * Math.PI) / 180;
-    const position: [number, number, number] = [
-      0,
-      Math.sin(tiltRad) * CAMERA_RADIUS,
-      Math.cos(tiltRad) * CAMERA_RADIUS,
-    ];
-    const up: [number, number, number] = [Math.sin(rotationRad), Math.cos(rotationRad), 0];
+    const { position, up } = cameraPose(tiltDeg, rotationDeg);
     camera.set({ position });
     camera.lookAt([targetX, 0, targetZ], up);
   };

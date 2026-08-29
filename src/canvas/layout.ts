@@ -1,14 +1,17 @@
 /** World-space extent of a single card's visible plane. */
-export const CARD_WIDTH = 2.1;
-export const CARD_HEIGHT = 1.3;
+export const CARD_WIDTH = 2.7;
+export const CARD_ASPECT_RATIO = 4 / 3;
+export const CARD_HEIGHT = CARD_WIDTH / CARD_ASPECT_RATIO;
 
 /** World-space spacing between card centers (leaves a gutter around CARD_WIDTH/HEIGHT). */
-export const CELL_WIDTH = 2.3;
-export const CELL_HEIGHT = 1.45;
+export const CARD_GAP = 0.12;
+export const CELL_WIDTH = CARD_WIDTH + CARD_GAP;
+export const CELL_HEIGHT = CARD_HEIGHT + CARD_GAP;
 
-/** The unique-card repeat unit: 2 columns x 3 rows = 6 distinct effects. */
-export const REPEAT_COLS = 2;
-export const REPEAT_ROWS = 3;
+/** The unique-card repeat unit: 7 columns x 2 staggered rows = 14 distinct cards. */
+export const REPEAT_COLS = 7;
+export const REPEAT_ROWS = 2;
+const REPEAT_UNIT_SIZE = REPEAT_COLS * REPEAT_ROWS;
 
 export const PERIOD_WIDTH = CELL_WIDTH * REPEAT_COLS;
 export const PERIOD_HEIGHT = CELL_HEIGHT * REPEAT_ROWS;
@@ -22,13 +25,14 @@ export const INSTANCE_COLS = 9; // covers +/- 4 periods
 export const INSTANCE_ROWS = 7; // covers +/- 3 periods
 export const INSTANCES_PER_EFFECT = INSTANCE_COLS * INSTANCE_ROWS;
 
-/** Where effect `effectIndex` (0..5) sits within one repeat unit, centered on the unit. */
+/** Where effect `effectIndex` (0..REPEAT_COLS*REPEAT_ROWS-1) sits within one repeat unit, centered on the unit. */
 export function effectUnitOffset(effectIndex: number): { x: number; z: number } {
-  const normalized = ((effectIndex % 6) + 6) % 6;
+  const normalized = ((effectIndex % REPEAT_UNIT_SIZE) + REPEAT_UNIT_SIZE) % REPEAT_UNIT_SIZE;
   const col = normalized % REPEAT_COLS;
   const row = Math.floor(normalized / REPEAT_COLS);
+  const rowStagger = (row % 2 === 0 ? -0.25 : 0.25) * CELL_WIDTH;
   return {
-    x: (col - (REPEAT_COLS - 1) / 2) * CELL_WIDTH,
+    x: (col - (REPEAT_COLS - 1) / 2) * CELL_WIDTH + rowStagger,
     z: (row - (REPEAT_ROWS - 1) / 2) * CELL_HEIGHT,
   };
 }
@@ -72,4 +76,40 @@ export function cardWorldPosition(
     x: unit.x * scale + i * scaledPeriodWidth - localOffsetX,
     z: unit.z * scale + j * scaledPeriodHeight - localOffsetZ,
   };
+}
+
+export interface CardCandidate {
+  readonly effectIndex: number;
+  readonly instanceIndex: number;
+  readonly x: number;
+  readonly z: number;
+}
+
+export function cardCandidatesInView(
+  panX: number,
+  panZ: number,
+  scale: number,
+  halfViewWidth: number,
+  halfViewHeight: number
+): readonly CardCandidate[] {
+  const cards: CardCandidate[] = [];
+  const maxX = halfViewWidth + CARD_WIDTH / 2;
+  const maxZ = halfViewHeight + CARD_HEIGHT / 2;
+
+  for (let effectIndex = 0; effectIndex < REPEAT_COLS * REPEAT_ROWS; effectIndex++) {
+    for (let instanceIndex = 0; instanceIndex < INSTANCES_PER_EFFECT; instanceIndex++) {
+      const { x, z } = cardWorldPosition(
+        effectIndex,
+        instanceIndex,
+        panX,
+        panZ,
+        scale
+      );
+      if (Math.abs(x) <= maxX && Math.abs(z) <= maxZ) {
+        cards.push({ effectIndex, instanceIndex, x, z });
+      }
+    }
+  }
+
+  return cards;
 }

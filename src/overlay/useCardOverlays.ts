@@ -1,20 +1,40 @@
 // src/overlay/useCardOverlays.ts
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
+import { CARD_HEIGHT, CARD_WIDTH } from "../canvas/layout";
 import type { InfiniteCanvasRenderer, VisibleCard } from "../canvas/renderer";
-import { worldToScreen } from "../canvas/projection";
+import { worldCardToScreenFrame } from "../canvas/projection";
 
 export interface ProjectedCard extends VisibleCard {
   readonly screenX: number;
   readonly screenY: number;
+  readonly width: number;
+  readonly height: number;
+  readonly rotationDeg: number;
+}
+
+export function sameCardKeys(
+  a: readonly { readonly key: string }[],
+  b: readonly { readonly key: string }[]
+): boolean {
+  return a.length === b.length && a.every((card, index) => card.key === b[index]?.key);
 }
 
 export function useCardOverlays(
   renderer: InfiniteCanvasRenderer | undefined,
   containerRef: React.RefObject<HTMLElement>
-): readonly ProjectedCard[] {
+): {
+  readonly cards: readonly ProjectedCard[];
+  registerElement(key: string, element: HTMLElement | null): void;
+} {
   const [projected, setProjected] = useState<readonly ProjectedCard[]>([]);
+  const projectedRef = useRef<readonly ProjectedCard[]>([]);
+  const elementsRef = useRef(new Map<string, HTMLElement>());
   const frameRef = useRef<number>();
+  const registerElement = useCallback((key: string, element: HTMLElement | null) => {
+    if (element) elementsRef.current.set(key, element);
+    else elementsRef.current.delete(key);
+  }, []);
 
   useEffect(() => {
     if (!renderer) return;
@@ -30,19 +50,46 @@ export function useCardOverlays(
         const next = renderer
           .getVisibleCards()
           .flatMap((card): ProjectedCard[] => {
-            const screen = worldToScreen(viewProjection, card.worldX, card.worldZ, width, height);
+            const screen = worldCardToScreenFrame(
+              viewProjection,
+              card.worldX,
+              card.worldZ,
+              CARD_WIDTH,
+              CARD_HEIGHT,
+              width,
+              height
+            );
             if (
               !screen.visible ||
-              screen.x <= -200 ||
-              screen.x >= width + 200 ||
-              screen.y <= -200 ||
-              screen.y >= height + 200
+              screen.centerX + screen.width / 2 <= 0 ||
+              screen.centerX - screen.width / 2 >= width ||
+              screen.centerY + screen.height / 2 <= 0 ||
+              screen.centerY - screen.height / 2 >= height
             ) {
               return [];
             }
-            return [{ ...card, screenX: screen.x, screenY: screen.y }];
+            return [
+              {
+                ...card,
+                screenX: screen.centerX,
+                screenY: screen.centerY,
+                width: screen.width,
+                height: screen.height,
+                rotationDeg: screen.rotationDeg,
+              },
+            ];
           });
-        setProjected(next);
+        for (const card of next) {
+          const element = elementsRef.current.get(card.key);
+          if (!element) continue;
+          element.style.width = `${card.width}px`;
+          element.style.height = `${card.height}px`;
+          element.style.transform = `translate3d(${card.screenX}px, ${card.screenY}px, 0) translate(-50%, -50%) rotate(${card.rotationDeg}deg)`;
+        }
+        if (!sameCardKeys(projectedRef.current, next)) {
+          setProjected(next);
+        }
+        projectedRef.current = next;
       }
       frameRef.current = requestAnimationFrame(tick);
     };
@@ -55,5 +102,5 @@ export function useCardOverlays(
     };
   }, [renderer, containerRef]);
 
-  return projected;
+  return { cards: projected, registerElement };
 }

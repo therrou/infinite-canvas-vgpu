@@ -3,38 +3,64 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 260px;
-  height: 160px;
-  margin-left: -130px;
-  margin-top: -80px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 15%;
+  container-type: size;
+  isolation: isolate;
   pointer-events: none;
+  color: #fff;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.72);
+  will-change: transform;
+}
+
+.card-overlay__content {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  padding: 14px 16px;
-  color: #fff;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  justify-content: flex-end;
+  padding-top: clamp(18px, 14cqh, 44px);
+  padding-right: clamp(10px, 3.2cqw, 18px);
+  padding-bottom: clamp(16px, 13cqh, 40px);
+  padding-left: 20px;
 }
 
-.card-overlay__kicker {
+@media (max-width: 768px) {
+  .card-overlay__content {
+    padding-left: 10px;
+  }
+}
+
+.card-overlay__copy {
   display: flex;
-  justify-content: space-between;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  opacity: 0.8;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.card-overlay__id {
-  color: #7dd3fc;
+.card-overlay__rule {
+  height: 1px;
+  margin-bottom: 2.6cqw;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.5));
 }
 
 .card-overlay__title {
-  font-size: 22px;
-  font-weight: 700;
+  margin: 0;
+  font-size: 30px;
+  font-weight: 650;
+  line-height: 0.9;
+  letter-spacing: -0.065em;
+  white-space: nowrap;
 }
 
 .card-overlay__tagline {
-  font-size: 12px;
-  opacity: 0.85;
+  margin: 2.2cqw 0 0;
+  max-width: 72%;
+  font-size: clamp(7px, 3cqw, 13px);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  opacity: 0.86;
 }

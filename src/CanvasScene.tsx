@@ -23,13 +23,20 @@ export function CanvasScene() {
     return () => nextRenderer.dispose();
   }, []);
 
-  const projectedCards = useCardOverlays(renderer, containerRef);
+  const { cards: projectedCards, registerElement } = useCardOverlays(
+    renderer,
+    containerRef
+  );
 
   return (
     <div ref={containerRef} className="canvas-scene">
       <canvas ref={canvasRef} className="canvas-scene__canvas" />
       {projectedCards.map((card) => (
-        <CardOverlay key={card.key} card={card} />
+        <CardOverlay
+          key={card.key}
+          card={card}
+          elementRef={(element) => registerElement(card.key, element)}
+        />
       ))}
     </div>
   );

@@ -1,21 +1,20 @@
-import { DEFAULT_ZOOM, MAX_ZOOM, MIN_ZOOM } from "./cameraRig";
-import { applyInertia, clamp, type InertiaState } from "./math";
+import { DEFAULT_ZOOM } from "./cameraRig";
+import { applyInertia, type InertiaState } from "./math";
 
 export interface InputSnapshot {
   readonly panX: number;
   readonly panZ: number;
-  readonly distance: number;
   readonly pointerNdcX: number;
   readonly pointerNdcY: number;
 }
 
 export interface InputController {
   attach(element: HTMLElement): () => void;
+  setZoom(zoom: number): void;
   tick(dt: number): InputSnapshot;
 }
 
 const FRICTION = 0.95; // fraction of velocity lost per second — matches canvas/math.ts's applyInertia contract: decay = (1-friction)^dt
-const ZOOM_SPEED = 0.01; // world units of distance per wheel-delta unit
 
 export function createInputController(): InputController {
   let panX = 0;
@@ -25,14 +24,14 @@ export function createInputController(): InputController {
   let lastPointerX = 0;
   let lastPointerY = 0;
   let lastMoveTime = performance.now();
-  let distance = DEFAULT_ZOOM;
+  let zoom = DEFAULT_ZOOM;
   let pointerNdcX = 0;
   let pointerNdcY = 0;
 
   function worldPerPixel(element: HTMLElement): number {
-    // Orthographic camera: `distance` is the view box's half-height in world units,
+    // Orthographic camera: `zoom` is the view box's half-height in world units,
     // so world-units-per-pixel is a direct linear ratio — no FOV/perspective term needed.
-    return (2 * distance) / element.clientHeight;
+    return (2 * zoom) / element.clientHeight;
   }
 
   function updatePointerNdc(element: HTMLElement, clientX: number, clientY: number) {
@@ -80,23 +79,16 @@ export function createInputController(): InputController {
       dragging = false;
     };
 
-    const onWheel = (event: WheelEvent) => {
-      event.preventDefault();
-      distance = clamp(distance + event.deltaY * ZOOM_SPEED, MIN_ZOOM, MAX_ZOOM);
-    };
-
     element.addEventListener("pointerdown", onPointerDown);
     element.addEventListener("pointermove", onPointerMove);
     element.addEventListener("pointerup", endDrag);
     element.addEventListener("pointercancel", endDrag);
-    element.addEventListener("wheel", onWheel, { passive: false });
 
     return () => {
       element.removeEventListener("pointerdown", onPointerDown);
       element.removeEventListener("pointermove", onPointerMove);
       element.removeEventListener("pointerup", endDrag);
       element.removeEventListener("pointercancel", endDrag);
-      element.removeEventListener("wheel", onWheel);
     };
   }
 
@@ -106,8 +98,14 @@ export function createInputController(): InputController {
       panX += inertia.vx * dt;
       panZ += inertia.vz * dt;
     }
-    return { panX, panZ, distance, pointerNdcX, pointerNdcY };
+    return { panX, panZ, pointerNdcX, pointerNdcY };
   }
 
-  return { attach, tick };
+  return {
+    attach,
+    setZoom(nextZoom) {
+      zoom = nextZoom;
+    },
+    tick,
+  };
 }

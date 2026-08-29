@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { transformPoint, worldToScreen } from "./projection";
+import {
+  transformPoint,
+  worldCardToScreenFrame,
+  worldToScreen,
+} from "./projection";
 
 // Column-major identity matrix (m[col*4+row]).
 const IDENTITY = new Float32Array([
@@ -46,5 +50,27 @@ describe("worldToScreen", () => {
     ]);
     const { visible } = worldToScreen(behindCamera, 0, 0, 800, 600);
     expect(visible).toBe(false);
+  });
+});
+
+describe("worldCardToScreenFrame", () => {
+  it("projects a world-space card into a centered CSS frame", () => {
+    const xzToScreen = new Float32Array([
+      1, 0, 0, 0,
+      0, 0, 1, 0,
+      0, 1, 0, 0,
+      0, 0, 0, 1,
+    ]);
+
+    expect(
+      worldCardToScreenFrame(xzToScreen, 0, 0, 1, 1, 800, 600)
+    ).toEqual({
+      centerX: 400,
+      centerY: 300,
+      width: 400,
+      height: 300,
+      rotationDeg: 0,
+      visible: true,
+    });
   });
 });

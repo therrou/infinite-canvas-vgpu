@@ -2,6 +2,8 @@
 import type { ShaderSource } from "@vgpu/wgsl";
 
 import { CARD_EFFECT_METADATA } from "./metadata";
+import cardLensShader from "./card-lens.wgsl";
+import matcapEnvShader from "./matcap-env.wgsl";
 import flowFieldShader from "./flow-field.wgsl";
 import domainWarpShader from "./domain-warp.wgsl";
 import raymarchBlobShader from "./raymarch-blob.wgsl";
@@ -14,7 +16,8 @@ export interface CardEffectDefinition {
   readonly title: string;
   readonly category: string;
   readonly tagline: string;
-  readonly shader: ShaderSource;
+  readonly videoSrc?: string;
+  readonly artworkShader: ShaderSource;
 }
 
 const SHADERS_BY_FILE: Record<string, ShaderSource> = {
@@ -33,6 +36,10 @@ export const CARD_EFFECTS: readonly CardEffectDefinition[] = CARD_EFFECT_METADAT
     title: metadata.title,
     category: metadata.category,
     tagline: metadata.tagline,
-    shader: SHADERS_BY_FILE[metadata.file],
+    videoSrc: metadata.videoSrc,
+    artworkShader: SHADERS_BY_FILE[metadata.file],
   }),
 );
+
+export const CARD_LENS_SHADER = cardLensShader;
+export const MATCAP_ENV_SHADER = matcapEnvShader;

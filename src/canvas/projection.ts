@@ -38,3 +38,56 @@ export function worldToScreen(
     visible: true,
   };
 }
+
+export interface ScreenCardFrame {
+  readonly centerX: number;
+  readonly centerY: number;
+  readonly width: number;
+  readonly height: number;
+  readonly rotationDeg: number;
+  readonly visible: boolean;
+}
+
+export function worldCardToScreenFrame(
+  viewProjection: Float32Array,
+  worldX: number,
+  worldZ: number,
+  cardWidth: number,
+  cardHeight: number,
+  screenWidth: number,
+  screenHeight: number
+): ScreenCardFrame {
+  const center = worldToScreen(
+    viewProjection,
+    worldX,
+    worldZ,
+    screenWidth,
+    screenHeight
+  );
+  const right = worldToScreen(
+    viewProjection,
+    worldX + cardWidth / 2,
+    worldZ,
+    screenWidth,
+    screenHeight
+  );
+  const vertical = worldToScreen(
+    viewProjection,
+    worldX,
+    worldZ + cardHeight / 2,
+    screenWidth,
+    screenHeight
+  );
+  const visible = center.visible && right.visible && vertical.visible;
+  const axisX = { x: right.x - center.x, y: right.y - center.y };
+  const axisY = { x: vertical.x - center.x, y: vertical.y - center.y };
+
+  return {
+    centerX: center.x,
+    centerY: center.y,
+    width: Math.hypot(axisX.x, axisX.y) * 2,
+    height: Math.hypot(axisY.x, axisY.y) * 2,
+    rotationDeg: (Math.atan2(axisX.y, axisX.x) * 180) / Math.PI,
+    visible,
+  };
+}
