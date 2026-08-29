@@ -68,11 +68,22 @@ function coverUvTransform(cardAspect: number, mediaAspect: number) {
   return { scaleX: 1, scaleY, offsetX: 0, offsetY: (1 - scaleY) / 2 };
 }
 
+// On-screen card height = CARD_HEIGHT (world units) * viewportHeightPx / (2 * zoom) — zoom is
+// "world units visible", so raising zoom shrinks apparent card size. The density formula below
+// only targets card width relative to viewport width, leaving height unconstrained; on a tall
+// viewport (or with a portrait card aspect ratio) that lets cards balloon well past a sane pixel
+// size. There's no CSS max-height lever for this — it has to be a zoom floor.
+const MAX_CARD_HEIGHT_PX = 640;
+
 function responsiveZoomForViewport(width: number, height: number): number {
   const safeWidth = Math.max(width, 1);
+  const safeHeight = Math.max(height, 1);
   const densityProgress = Math.min(Math.max((safeWidth - 700) / 500, 0), 1);
   const tilesAcross = 1.3 + densityProgress * 1.1;
-  return (CARD_WIDTH * Math.max(height, 1) * tilesAcross) / (2 * safeWidth);
+  const densityZoom = (CARD_WIDTH * safeHeight * tilesAcross) / (2 * safeWidth);
+  const maxHeightZoom = (CARD_HEIGHT * safeHeight) / (2 * MAX_CARD_HEIGHT_PX);
+  // Whichever zoom wants a smaller on-screen card wins (higher zoom = smaller card).
+  return Math.max(densityZoom, maxHeightZoom);
 }
 
 export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): InfiniteCanvasRenderer {
