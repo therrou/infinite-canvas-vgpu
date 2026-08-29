@@ -176,7 +176,7 @@ export function createInfiniteCanvasRenderer(canvas: HTMLCanvasElement): Infinit
     });
 
     artworkTargets = CARD_EFFECTS.map(() =>
-      target(gpu!, { size: [768, 530] })
+      target(gpu!, { size: [530, 707] })
     );
     artworkDraws = CARD_EFFECTS.map((effect) =>
       draw(gpu!, {

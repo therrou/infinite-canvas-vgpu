@@ -1,6 +1,6 @@
 /** World-space extent of a single card's visible plane. */
 export const CARD_WIDTH = 2.7;
-export const CARD_ASPECT_RATIO = 4 / 3;
+export const CARD_ASPECT_RATIO = 3 / 4;
 export const CARD_HEIGHT = CARD_WIDTH / CARD_ASPECT_RATIO;
 
 /** World-space spacing between card centers (leaves a gutter around CARD_WIDTH/HEIGHT). */

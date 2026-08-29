@@ -3,8 +3,13 @@ import type { CSSProperties, Ref } from "react";
 
 import { CARD_EFFECTS } from "../canvas/effects/registry";
 import type { ProjectedCard } from "./useCardOverlays";
+import TextType from "./TextType";
 
 import "./CardOverlay.css";
+
+const TITLE_TYPING_SPEED = 60;
+const TAGLINE_TYPING_SPEED = 18;
+const TAGLINE_START_BUFFER = 400;
 
 export function CardOverlay({
   card,
@@ -25,8 +30,23 @@ export function CardOverlay({
       <div className="card-overlay__content">
         <div className="card-overlay__copy">
           <div className="card-overlay__rule" />
-          <h2 className="card-overlay__title">{effect.title}</h2>
-          <p className="card-overlay__tagline">{effect.tagline}</p>
+          <TextType
+            as="h2"
+            className="card-overlay__title"
+            text={effect.title}
+            loop={true}
+            typingSpeed={TITLE_TYPING_SPEED}
+            initialDelay={300}
+          />
+          <TextType
+            as="p"
+            className="card-overlay__tagline"
+            text={effect.tagline}
+            loop={true}
+            showCursor={true}
+            typingSpeed={TAGLINE_TYPING_SPEED}
+            initialDelay={300 + effect.title.length * TITLE_TYPING_SPEED + TAGLINE_START_BUFFER}
+          />
         </div>
       </div>
     </article>

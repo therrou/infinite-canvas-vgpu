@@ -29,8 +29,8 @@ describe("layout constants", () => {
     expect(REPEAT_ROWS).toBe(2);
   });
 
-  it("uses near-4:3 cards with narrow gutters", () => {
-    expect(CARD_WIDTH / CARD_HEIGHT).toBeCloseTo(4 / 3, 1);
+  it("uses near-3:4 portrait cards with narrow gutters", () => {
+    expect(CARD_WIDTH / CARD_HEIGHT).toBeCloseTo(3 / 4, 1);
     expect((CELL_WIDTH - CARD_WIDTH) / CARD_WIDTH).toBeLessThan(0.06);
     expect((CELL_HEIGHT - CARD_HEIGHT) / CARD_HEIGHT).toBeLessThan(0.06);
   });

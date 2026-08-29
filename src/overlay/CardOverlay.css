@@ -26,12 +26,12 @@
   padding-top: clamp(18px, 14cqh, 44px);
   padding-right: clamp(10px, 3.2cqw, 18px);
   padding-bottom: clamp(16px, 13cqh, 40px);
-  padding-left: 20px;
+  padding-left: 40px;
 }
 
 @media (max-width: 768px) {
   .card-overlay__content {
-    padding-left: 10px;
+    padding-left: 20px;
   }
 }
 
